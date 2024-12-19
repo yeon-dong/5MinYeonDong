@@ -43,3 +43,4 @@ Copyright 2024. 연동 All rights reserved.
 
 ## 5분 연동(5 Minute Yeon-Dong) 개발자들
 정세진 @jsj7878, 김대호 @DhoWor1d, 임동연 @yeon-dong
+<img width="2560" alt="스크린샷 2024-12-19 오전 11 42 01" src="https://github.com/user-attachments/assets/1fe9d5a4-de39-4531-bc8d-17094997fec7" />
