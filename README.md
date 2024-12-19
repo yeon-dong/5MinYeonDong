@@ -24,7 +24,7 @@ Copyright 2024. 연동 All rights reserved.
 
 <br/>
 
-<img src="https://github.com/user-attachments/assets/9d3bf62a-ca1c-45cd-a20f-9694f28028df" width="500" /> <img src="https://github.com/user-attachments/assets/247bcc8b-fbab-4ee9-bc5f-b82d1f48c4ed" width="300" />
+<img src="https://github.com/user-attachments/assets/2eb83b54-3a49-48cc-bb4e-f7a0c53686bf" width="400" />
 
 <br/>
 
