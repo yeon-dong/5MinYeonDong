@@ -42,4 +42,4 @@ Copyright 2024. 연동 All rights reserved.
 ### 주제 상세 정보 화면
 
 ## 5분 연동(5 Minute Yeon-Dong) 개발자들
-정세진 @sejin, 김대호 @DhoWor1d, 임동연 @yeon-dong
+정세진 @jsj7878, 김대호 @DhoWor1d, 임동연 @yeon-dong
