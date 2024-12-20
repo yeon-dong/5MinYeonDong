@@ -17,7 +17,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
 
     private let Title = UILabel().then{
         $0.text = "지금의 연동 주제"
-        $0.font = UIFont.systemFont(ofSize: 24)
+        $0.font = UIFont.systemFont(ofSize: 24, weight: .heavy)
     }
     
     private let TopicTitle = UILabel().then{
@@ -115,7 +115,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
         
         // Do any additional setup after loading the view.
     }
-    
+    // MARK: 여기에 채팅 연결하기
     @objc private func sendMessage() {
         guard let text = ChatInputField.text, !text.isEmpty else { return }
         guard let sender = NameInputField.text, !sender.isEmpty else {return}

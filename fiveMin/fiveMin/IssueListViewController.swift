@@ -11,11 +11,12 @@ import Then
 
 class IssueListViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
+    // MARK: 여기에 토픽 주제들 파이어베이스 가져오기
     private var topics : [Topic] = [Topic(title: "주제1", messages: [Message(id: "1", senderId: "2", text: "hi", timestamp: TimeInterval())], vote: 2, activate: true, startTime: Date())]
     
     private let Title = UILabel().then{
         $0.text = "토론했던 연동 주제들"
-        $0.font = UIFont.systemFont(ofSize: 24)
+        $0.font = UIFont.systemFont(ofSize: 24, weight: .heavy)
     }
     
     private let IssueListTableView = UITableView().then{
@@ -23,22 +24,41 @@ class IssueListViewController: UIViewController, UITableViewDelegate, UITableVie
         $0.separatorStyle = .none
     }
     
+    private let ViewWrapper = UIView()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         IssueListTableView.register(IssueListTableViewCell.self, forCellReuseIdentifier: "issueCell")
         IssueListTableView.dataSource = self
         IssueListTableView.delegate = self
-        view.addSubview(Title)
-        view.addSubview(IssueListTableView)
-        Title.snp.makeConstraints{
+        ViewWrapper.addSubview(Title)
+        ViewWrapper.addSubview(IssueListTableView)
+        view.addSubview(ViewWrapper)
+//        view.addSubview(Title)
+//        view.addSubview(IssueListTableView)
+        ViewWrapper.snp.makeConstraints{
             $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
-        }
-        IssueListTableView.snp.makeConstraints{
-            $0.top.equalTo(Title.snp.bottom).offset(12)
             $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
             $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
             $0.bottom.equalTo(view.safeAreaLayoutGuide)
+        }
+//        Title.snp.makeConstraints{
+//            $0.top.equalTo(view.safeAreaLayoutGuide)
+//            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+//            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
+//        }
+        Title.snp.makeConstraints{
+            $0.top.equalToSuperview()
+            $0.trailing.equalToSuperview()
+            $0.leading.equalToSuperview()
+        }
+        IssueListTableView.snp.makeConstraints{
+            $0.top.equalTo(Title.snp.bottom).offset(12)
+//            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+//            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
+            $0.trailing.equalToSuperview()
+            $0.leading.equalToSuperview()
+            $0.bottom.equalToSuperview()
         }
     }
     

@@ -14,6 +14,9 @@ class IssueTableViewCell: UITableViewCell {
 
     let TitleLabel = UILabel().then{
         $0.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        $0.numberOfLines = 2
+        $0.lineBreakMode = .byTruncatingTail
+        $0.adjustsFontSizeToFitWidth = false
     }
     
     let ContentLabel = UILabel().then{
