@@ -6,6 +6,8 @@ target 'fiveMin' do
   use_frameworks!
   pod 'SnapKit'
   pod 'Then'
+  pod 'FirebaseAuth'
+  pod 'FirebaseCore'
   # Pods for fiveMin
 
 end
