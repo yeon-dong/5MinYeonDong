@@ -6,16 +6,186 @@
 //
 
 import UIKit
+import SnapKit
+import Then
 
-class IssueChatViewController: UIViewController {
 
+class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableViewDelegate, UITableViewDataSource {
+    
+    private var messages : [Message] = []
+    
+
+    private let Title = UILabel().then{
+        $0.text = "지금의 연동 주제"
+        $0.font = UIFont.systemFont(ofSize: 24)
+    }
+    
+    private let TopicTitle = UILabel().then{
+        $0.text = "주제 1"
+        $0.font = UIFont.systemFont(ofSize: 16)
+    }
+    
+    private let TopicWrapper = UIView().then{
+        $0.backgroundColor = UIColor.systemGray5
+        $0.layer.cornerRadius = 10
+    }
+    
+    private let DateText = UILabel().then{
+        $0.text = "시간"
+        $0.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        $0.textColor = UIColor.systemGray4
+        
+    }
+    
+    private let ChatTableView = UITableView()
+    
+    private let NameInputField = UITextField().then{
+        $0.borderStyle = .roundedRect
+        $0.placeholder = "닉네임"
+    }
+    
+    private let ChatInputField = UITextField().then{
+        $0.borderStyle = .roundedRect
+        $0.placeholder = "주제에 대한 자신의 의견을 말해보세요!"
+    }
+    
+    private let SendButton = UIButton(type: .custom).then{
+        $0.setTitle("등록하기", for: .normal)
+        $0.setTitleColor(.white, for: .normal)
+        $0.backgroundColor = .systemBlue
+        $0.layer.cornerRadius = 10
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        TopicWrapper.addSubview(TopicTitle)
+        ChatTableView.delegate = self
+        ChatTableView.dataSource = self
+        ChatTableView.register(IssueTableViewCell.self, forCellReuseIdentifier: "cell")
+        NameInputField.delegate = self
+        ChatInputField.delegate = self
+        let arrangedView = [Title, TopicWrapper, DateText, NameInputField, ChatInputField, SendButton, ChatTableView]
+        arrangedView.forEach{
+            view.addSubview($0)
+        }
+        Title.snp.makeConstraints{
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+        }
+        TopicWrapper.snp.makeConstraints{
+            $0.top.equalTo(Title.snp.bottom).offset(12)
+            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+            
+            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
+            $0.height.equalTo(54)
+        }
+        TopicTitle.snp.makeConstraints{
+            $0.centerY.equalToSuperview()
+            $0.leading.equalTo(TopicWrapper.snp.leading).offset(16)
+        }
+        DateText.snp.makeConstraints{
+            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
+            $0.top.equalTo(TopicWrapper.snp.bottom).offset(5)
+        }
+        
+        ChatTableView.snp.makeConstraints{
+            $0.top.equalTo(DateText.snp.bottom).offset(10)
+            $0.bottom.equalTo(NameInputField.snp.top).offset(-10)
+            $0.width.equalTo(view.safeAreaLayoutGuide)
+        }
+        
+        NameInputField.snp.makeConstraints{
+            $0.bottom.equalTo(ChatInputField.snp.top).offset(-5)
+            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+        }
+        
+        SendButton.snp.makeConstraints{
+            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
+        }
+        
+        ChatInputField.snp.makeConstraints{
+            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
+            $0.trailing.equalTo(SendButton.snp.leading).offset(-3)
+        }
+        
+        
+        SendButton.addTarget(self, action: #selector(sendMessage), for: .touchUpInside)
+        
         // Do any additional setup after loading the view.
     }
     
+    @objc private func sendMessage() {
+        guard let text = ChatInputField.text, !text.isEmpty else { return }
+        guard let sender = NameInputField.text, !sender.isEmpty else {return}
+//            let messageId = databaseRef.child("chatRooms/\(chatRoomId)/messages").childByAutoId().key!
+            let messageData: [String: Any] = [
+                "senderId": "currentUserId",
+                "text": text,
+                "timestamp": Date().timeIntervalSince1970
+            ]
+        self.messages.append(Message(id: sender, senderId: sender, text: text, timestamp: TimeInterval(1)))
+        self.ChatTableView.reloadData()
+        self.scrollToBottom()
+            ChatInputField.text = ""
+    }
+    
+//    private func observeMessages() {
+//            databaseRef.child("chatRooms/\(chatRoomId)/messages").observe(.childAdded) { [weak self] snapshot in
+//                guard let self = self else { return }
+//                if let data = snapshot.value as? [String: Any],
+//                   let senderId = data["senderId"] as? String,
+//                   let text = data["text"] as? String,
+//                   let timestamp = data["timestamp"] as? TimeInterval {
+//                    let message = Message(id: snapshot.key, senderId: senderId, text: text, timestamp: timestamp)
+//                    self.messages.append(message)
+//                    self.ChatTableView.reloadData()
+//                    self.scrollToBottom()
+//                }
+//            }
+//        }
+    
+    private func scrollToBottom() {
+        guard !messages.isEmpty else { return }
+        let indexPath = IndexPath(row: messages.count - 1, section: 0)
+        ChatTableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
+       }
 
+    
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return messages.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! IssueTableViewCell
+        
+        let message = messages[indexPath.row]
+        cell.TitleLabel.text = message.senderId
+        cell.ContentLabel.text = message.text
+        return cell
+    }
+
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            // 현재 텍스트
+            let currentText = textField.text ?? ""
+
+            // 변경 후 예상 텍스트
+            guard let textRange = Range(range, in: currentText) else { return true }
+            let updatedText = currentText.replacingCharacters(in: textRange, with: string)
+
+            // 글자 수 제한
+            if textField == NameInputField {
+                return updatedText.count <= 6
+            } else if textField == ChatInputField {
+                return updatedText.count <= 40
+            }
+
+            return true
+        }
+    
+    
     /*
     // MARK: - Navigation
 
