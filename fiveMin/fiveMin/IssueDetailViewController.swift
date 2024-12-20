@@ -34,6 +34,7 @@ class IssueDetailViewController: UIViewController, UITableViewDelegate, UITableV
     private let ChatTableView = UITableView()
     
     override func viewDidLoad() {
+        view.backgroundColor = .systemBackground
         super.viewDidLoad()
         TopicTitle.text = topic?.title
         ChatTableView.register(IssueTableViewCell.self, forCellReuseIdentifier: "chatcell")
