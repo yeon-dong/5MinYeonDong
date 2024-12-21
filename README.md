@@ -7,7 +7,7 @@ Copyright 2024. 연동 All rights reserved.
 <br/>
 <br/>
 
-## 5분 동안 다른 사람들과 의견을 나누세요!
+## 5분 동안 다른 사람들과 의견을 나누세요!
 
 <br/>
 <br/>
