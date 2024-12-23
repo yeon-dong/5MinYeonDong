@@ -8,12 +8,15 @@
 import UIKit
 import SnapKit
 import Then
+import FirebaseDatabase
 
 class IssueDetailViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     
     
     var topic : Topic?
+    private var messages : [Message] = []
+    let databaseRef = Database.database().reference()
     
     private let TopicTitle = UILabel().then{
         $0.font = UIFont.systemFont(ofSize: 16)
@@ -25,7 +28,6 @@ class IssueDetailViewController: UIViewController, UITableViewDelegate, UITableV
     }
     
     private let DateText = UILabel().then{
-        $0.text = "시간"
         $0.font = UIFont.systemFont(ofSize: 16, weight: .bold)
         $0.textColor = UIColor.systemGray4
         
@@ -37,6 +39,9 @@ class IssueDetailViewController: UIViewController, UITableViewDelegate, UITableV
         view.backgroundColor = .systemBackground
         super.viewDidLoad()
         TopicTitle.text = topic?.title
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        DateText.text = dateFormatter.string(from: topic!.startTime)
         ChatTableView.register(IssueTableViewCell.self, forCellReuseIdentifier: "chatcell")
         ChatTableView.delegate = self
         ChatTableView.dataSource = self
@@ -69,14 +74,36 @@ class IssueDetailViewController: UIViewController, UITableViewDelegate, UITableV
         // Do any additional setup after loading the view.
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        observeMessages()
+        // 뷰가 화면에 나타날 때마다 실행될 코드
+    }
+    
+    private func observeMessages() {
+        databaseRef.child("chatRooms/\(topic?.title)/messages").observe(.childAdded) { [weak self] snapshot  in
+                guard let self = self else { return }
+                if let data = snapshot.value as? [String: Any],
+                   let senderId = data["senderId"] as? String,
+                   let text = data["text"] as? String,
+                   let timestamp = data["timestamp"] as? TimeInterval {
+                    let message = Message(id: snapshot.key, senderId: senderId, text: text, timestamp: timestamp)
+                    print(message)
+                    self.messages.append(message)
+                    self.ChatTableView.reloadData()
+                }
+            }
+        }
+    
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return topic?.messages.count ?? 0
+        return messages.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "chatcell", for: indexPath) as! IssueTableViewCell
-        let message = topic?.messages[indexPath.row].text
-        let user = topic?.messages[indexPath.row].senderId
+        let message = messages[indexPath.row].text
+        let user = messages[indexPath.row].senderId
         cell.TitleLabel.text = user
         cell.ContentLabel.text = message
         return cell

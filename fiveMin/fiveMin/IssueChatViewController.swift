@@ -9,12 +9,14 @@ import UIKit
 import SnapKit
 import Then
 import FirebaseDatabase
+import FirebaseFirestore
 
 
 class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableViewDelegate, UITableViewDataSource {
     
     private var messages : [Message] = []
-    private let topic = Topic(title: "주제1", messages: [], vote: 1, activate: true, startTime: Date())
+    var topic :Topic?
+    let db = Firestore.firestore()
     let databaseRef = Database.database().reference()
     
 
@@ -59,16 +61,19 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        getActiveTopicFromServer()
+        topic  = TopicManager.shared.getActiveTopic()
         TopicWrapper.addSubview(TopicTitle)
         ChatTableView.delegate = self
         ChatTableView.dataSource = self
         ChatTableView.register(IssueTableViewCell.self, forCellReuseIdentifier: "cell")
         NameInputField.delegate = self
         ChatInputField.delegate = self
-        TopicTitle.text = topic.title
+        TopicTitle.text = topic?.title
+        NotificationCenter.default.addObserver(self, selector: #selector(updateTopic), name: NSNotification.Name("UIUpdateNotification"), object: nil)
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        DateText.text = dateFormatter.string(from: topic.startTime)
+        DateText.text = dateFormatter.string(from: topic!.startTime)
         let arrangedView = [Title, TopicWrapper, DateText, NameInputField, ChatInputField, SendButton, ChatTableView]
         arrangedView.forEach{
             view.addSubview($0)
@@ -122,20 +127,18 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     }
     // MARK: 여기에 채팅 연결하기
     @objc private func sendMessage() {
+        topic = TopicManager.shared.getActiveTopic()
         guard let text = ChatInputField.text, !text.isEmpty else { return }
         guard let sender = NameInputField.text, !sender.isEmpty else {return}
-        let messageId = databaseRef.child("chatRooms/\(topic.title)/messages").childByAutoId().key!
+        let messageId = databaseRef.child("chatRooms/\(topic?.title)/messages").childByAutoId().key!
         let messageData: [String: Any] = [
                 "senderId": "\(sender)",
                 "text": text,
                 "timestamp": Date().timeIntervalSince1970
             ]
-        databaseRef.child("chatRooms/\(topic.title)/messages/\(messageId)").setValue(messageData) { [weak self] error, _ in
+        databaseRef.child("chatRooms/\(topic?.title)/messages/\(messageId)").setValue(messageData) { [weak self] error, _ in
                 guard let self = self else { return }
                 if error == nil {
-                    // 로컬 메시지 배열 업데이트
-//                    let message = Message(id: messageId, senderId: sender, text: text, timestamp: messageData["timestamp"] as! TimeInterval)
-//                    self.messages.append(message)
                     self.ChatTableView.reloadData()
                     self.scrollToBottom()
                 } else {
@@ -146,7 +149,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     }
     
     private func observeMessages() {
-        databaseRef.child("chatRooms/\(topic.title)/messages").observe(.childAdded) { [weak self] snapshot in
+        databaseRef.child("chatRooms/\(topic?.title)/messages").observe(.childAdded) { [weak self] snapshot in
                 guard let self = self else { return }
                 if let data = snapshot.value as? [String: Any],
                    let senderId = data["senderId"] as? String,
@@ -199,6 +202,47 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
 
             return true
         }
+    
+    @objc private func updateTopic() {
+        // 활성화된 토픽을 가져와 UI 업데이트
+        topic = TopicManager.shared.getActiveTopic()
+        TopicTitle.text = topic?.title
+        observeMessages()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        DateText.text = dateFormatter.string(from: topic!.startTime)
+        messages = topic?.messages ?? []
+        ChatTableView.reloadData()
+    }
+    
+    func getActiveTopicFromServer(){
+        db.collection("chattopics").getDocuments { (querySnapshot, error) in
+            if let error = error {
+                print("Error getting documents: \(error)")
+            } else {
+                let chattopics = querySnapshot!.documents
+                let data = chattopics[0].data()
+                guard let title = data["title"] as? String,
+                      let messages = data["messages"] as? [Message],
+                      let vote = data["vote"] as? Int,
+                      let activate = data["activate"] as? Bool,
+                      let startTimeInterval = data["startTime"] as? TimeInterval else {
+                          return
+                      }
+                print(startTimeInterval)
+                let activeTopic = Topic(title: title, messages: messages, vote: vote, activate: activate, startTime: Date(timeIntervalSince1970: startTimeInterval))
+                print(activeTopic)
+                TopicManager.shared.setActiveTopic(activeTopic)
+            }
+        }
+        
+        
+    }
+
+    deinit {
+        // 알림 옵저버 제거
+        NotificationCenter.default.removeObserver(self)
+    }
     
     
     /*
