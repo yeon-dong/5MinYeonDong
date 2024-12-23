@@ -8,11 +8,14 @@
 import UIKit
 import SnapKit
 import Then
+import FirebaseDatabase
 
 
 class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableViewDelegate, UITableViewDataSource {
     
     private var messages : [Message] = []
+    private let topic = Topic(title: "주제1", messages: [], vote: 1, activate: true, startTime: Date())
+    let databaseRef = Database.database().reference()
     
 
     private let Title = UILabel().then{
@@ -21,7 +24,6 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     }
     
     private let TopicTitle = UILabel().then{
-        $0.text = "주제 1"
         $0.font = UIFont.systemFont(ofSize: 16)
     }
     
@@ -31,7 +33,6 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     }
     
     private let DateText = UILabel().then{
-        $0.text = "시간"
         $0.font = UIFont.systemFont(ofSize: 16, weight: .bold)
         $0.textColor = UIColor.systemGray4
         
@@ -64,6 +65,10 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
         ChatTableView.register(IssueTableViewCell.self, forCellReuseIdentifier: "cell")
         NameInputField.delegate = self
         ChatInputField.delegate = self
+        TopicTitle.text = topic.title
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        DateText.text = dateFormatter.string(from: topic.startTime)
         let arrangedView = [Title, TopicWrapper, DateText, NameInputField, ChatInputField, SendButton, ChatTableView]
         arrangedView.forEach{
             view.addSubview($0)
@@ -110,7 +115,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
             $0.trailing.equalTo(SendButton.snp.leading).offset(-3)
         }
         
-        
+        observeMessages()
         SendButton.addTarget(self, action: #selector(sendMessage), for: .touchUpInside)
         
         // Do any additional setup after loading the view.
@@ -119,32 +124,41 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     @objc private func sendMessage() {
         guard let text = ChatInputField.text, !text.isEmpty else { return }
         guard let sender = NameInputField.text, !sender.isEmpty else {return}
-//            let messageId = databaseRef.child("chatRooms/\(chatRoomId)/messages").childByAutoId().key!
-            let messageData: [String: Any] = [
-                "senderId": "currentUserId",
+        let messageId = databaseRef.child("chatRooms/\(topic.title)/messages").childByAutoId().key!
+        let messageData: [String: Any] = [
+                "senderId": "\(sender)",
                 "text": text,
                 "timestamp": Date().timeIntervalSince1970
             ]
-        self.messages.append(Message(id: sender, senderId: sender, text: text, timestamp: TimeInterval(1)))
-        self.ChatTableView.reloadData()
-        self.scrollToBottom()
+        databaseRef.child("chatRooms/\(topic.title)/messages/\(messageId)").setValue(messageData) { [weak self] error, _ in
+                guard let self = self else { return }
+                if error == nil {
+                    // 로컬 메시지 배열 업데이트
+//                    let message = Message(id: messageId, senderId: sender, text: text, timestamp: messageData["timestamp"] as! TimeInterval)
+//                    self.messages.append(message)
+                    self.ChatTableView.reloadData()
+                    self.scrollToBottom()
+                } else {
+                    print("Failed to send message: \(error?.localizedDescription ?? "Unknown error")")
+                }
+            }
             ChatInputField.text = ""
     }
     
-//    private func observeMessages() {
-//            databaseRef.child("chatRooms/\(chatRoomId)/messages").observe(.childAdded) { [weak self] snapshot in
-//                guard let self = self else { return }
-//                if let data = snapshot.value as? [String: Any],
-//                   let senderId = data["senderId"] as? String,
-//                   let text = data["text"] as? String,
-//                   let timestamp = data["timestamp"] as? TimeInterval {
-//                    let message = Message(id: snapshot.key, senderId: senderId, text: text, timestamp: timestamp)
-//                    self.messages.append(message)
-//                    self.ChatTableView.reloadData()
-//                    self.scrollToBottom()
-//                }
-//            }
-//        }
+    private func observeMessages() {
+        databaseRef.child("chatRooms/\(topic.title)/messages").observe(.childAdded) { [weak self] snapshot in
+                guard let self = self else { return }
+                if let data = snapshot.value as? [String: Any],
+                   let senderId = data["senderId"] as? String,
+                   let text = data["text"] as? String,
+                   let timestamp = data["timestamp"] as? TimeInterval {
+                    let message = Message(id: snapshot.key, senderId: senderId, text: text, timestamp: timestamp)
+                    self.messages.append(message)
+                    self.ChatTableView.reloadData()
+                    self.scrollToBottom()
+                }
+            }
+        }
     
     private func scrollToBottom() {
         guard !messages.isEmpty else { return }
@@ -164,6 +178,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
         let message = messages[indexPath.row]
         cell.TitleLabel.text = message.senderId
         cell.ContentLabel.text = message.text
+        cell.configure(isMyMessage: (message.senderId == NameInputField.text))
         return cell
     }
 

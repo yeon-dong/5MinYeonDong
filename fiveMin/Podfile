@@ -8,6 +8,7 @@ target 'fiveMin' do
   pod 'Then'
   pod 'FirebaseAuth'
   pod 'FirebaseCore'
+  pod 'Firebase/Database'
   # Pods for fiveMin
 
 end
