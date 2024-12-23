@@ -6,10 +6,12 @@
 //
 import Then
 import UIKit
+import FirebaseCore
+import FirebaseFirestore
 
 class SplashViewController: UIViewController {
     
-
+    let db = Firestore.firestore()
     private let titleLabel = UILabel().then {
         let attributedString = NSMutableAttributedString()
 
@@ -41,7 +43,7 @@ class SplashViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        getActiveTopicFromServer()
         setupViews()
         
         // 5초 후에 Main 화면으로 전환
@@ -81,5 +83,37 @@ class SplashViewController: UIViewController {
         mainVC.modalTransitionStyle = .crossDissolve // 전환 스타일 설정
         mainVC.modalPresentationStyle = .fullScreen // 전체 화면으로 설정
         self.present(mainVC, animated: true, completion: nil) // MainViewController로 전환
+    }
+    
+    func getActiveTopicFromServer(){
+        db.collection("chattopics").getDocuments { (querySnapshot, error) in
+            if let error = error {
+                print("Error getting documents: \(error)")
+            } else {
+                let chattopics : [Topic] = querySnapshot!.documents.compactMap{ document in
+                    let data = document.data()
+                    guard let title = data["title"] as? String,
+                          let messages = data["messages"] as? [Message],
+                          let vote = data["vote"] as? Int,
+                          let activate = data["activate"] as? Bool,
+                          let startTime = data["startTime"] as? Timestamp else {
+                        return nil
+                    }
+                    return Topic(
+                        title: title,
+                        messages: messages,
+                        vote: vote,
+                        activate: activate,
+                        startTime: startTime.dateValue()
+                    )
+                }
+                
+//                let activeTopic = Topic(title: title, messages: messages, vote: vote, activate: activate, startTime: Date(timeIntervalSince1970: startTimeInterval))
+                
+                let activeTopic = chattopics[0]
+                print(activeTopic)
+                TopicManager.shared.setActiveTopic(activeTopic)
+            }
+        }
     }
 }
