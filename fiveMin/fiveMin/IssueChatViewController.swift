@@ -61,8 +61,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        getActiveTopicFromServer()
-        topic  = TopicManager.shared.getActiveTopic()
+        topic = TopicManager.shared.getActiveTopic()
         TopicWrapper.addSubview(TopicTitle)
         ChatTableView.delegate = self
         ChatTableView.dataSource = self
@@ -215,29 +214,7 @@ class IssueChatViewController: UIViewController,  UITextFieldDelegate, UITableVi
         ChatTableView.reloadData()
     }
     
-    func getActiveTopicFromServer(){
-        db.collection("chattopics").getDocuments { (querySnapshot, error) in
-            if let error = error {
-                print("Error getting documents: \(error)")
-            } else {
-                let chattopics = querySnapshot!.documents
-                let data = chattopics[0].data()
-                guard let title = data["title"] as? String,
-                      let messages = data["messages"] as? [Message],
-                      let vote = data["vote"] as? Int,
-                      let activate = data["activate"] as? Bool,
-                      let startTimeInterval = data["startTime"] as? TimeInterval else {
-                          return
-                      }
-                print(startTimeInterval)
-                let activeTopic = Topic(title: title, messages: messages, vote: vote, activate: activate, startTime: Date(timeIntervalSince1970: startTimeInterval))
-                print(activeTopic)
-                TopicManager.shared.setActiveTopic(activeTopic)
-            }
-        }
-        
-        
-    }
+
 
     deinit {
         // 알림 옵저버 제거
