@@ -24,22 +24,28 @@ Copyright 2024. 연동 All rights reserved.
 
 <br/>
 
-<img src="https://github.com/user-attachments/assets/2eb83b54-3a49-48cc-bb4e-f7a0c53686bf" width="400" />
+<img src="https://github.com/user-attachments/assets/2eb83b54-3a49-48cc-bb4e-f7a0c53686bf" width="600" />
 
 <br/>
+<img width="800" alt="스크린샷 2024-12-23 오후 3 35 02" src="https://github.com/user-attachments/assets/20ee1e1f-45f1-4cf3-8b81-118db5754ce1" />
+
 
 ## 5분 연동 화면 소개
 ### 스플레쉬 화면
-
+<img width="458" alt="스크린샷 2024-12-23 오후 3 37 54" src="https://github.com/user-attachments/assets/9f1f64bd-ff41-4b99-b221-e348d0ff63f1" />
 
 ### 메인 화면
+<img width="458" alt="스크린샷 2024-12-23 오후 3 38 09" src="https://github.com/user-attachments/assets/ccdbf274-b0f3-41ed-9f46-c753f52dbd96" />
 
 
 ### 주제 리스트 화면
-
-
+<img width="458" alt="스크린샷 2024-12-23 오후 3 38 22" src="https://github.com/user-attachments/assets/615b6b72-d73e-449c-8af5-e4640d140e23" />
 
 ### 주제 상세 정보 화면
+<img width="458" alt="스크린샷 2024-12-23 오후 3 38 26" src="https://github.com/user-attachments/assets/f6b6ac2b-2d02-4622-85b9-4af84a68df8a" />
+
+### 주제 선정 화면
+<img width="458" alt="스크린샷 2024-12-23 오후 3 39 11" src="https://github.com/user-attachments/assets/b729e3dc-fdaf-449f-a5e8-9e761f2b2e9f" />
 
 ## 5분 연동(5 Minute Yeon-Dong) 개발자들
 정세진 @jsj7878, 김대호 @DhoWor1d, 임동연 @yeon-dong
