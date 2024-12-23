@@ -8,11 +8,13 @@
 import UIKit
 import SnapKit
 import Then
+import FirebaseFirestore
 
 class IssueListViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
     // MARK: 여기에 토픽 주제들 파이어베이스 가져오기
-    private var topics : [Topic] = [Topic(title: "주제1", messages: [Message(id: "1", senderId: "2", text: "hi", timestamp: TimeInterval())], vote: 2, activate: true, startTime: Date())]
+    let db = Firestore.firestore()
+    private var topics : [Topic] = []
     
     private let Title = UILabel().then{
         $0.text = "토론했던 연동 주제들"
@@ -31,22 +33,16 @@ class IssueListViewController: UIViewController, UITableViewDelegate, UITableVie
         IssueListTableView.register(IssueListTableViewCell.self, forCellReuseIdentifier: "issueCell")
         IssueListTableView.dataSource = self
         IssueListTableView.delegate = self
+        //getChatTopics()
         ViewWrapper.addSubview(Title)
         ViewWrapper.addSubview(IssueListTableView)
         view.addSubview(ViewWrapper)
-//        view.addSubview(Title)
-//        view.addSubview(IssueListTableView)
         ViewWrapper.snp.makeConstraints{
             $0.top.equalTo(view.safeAreaLayoutGuide)
             $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
             $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
             $0.bottom.equalTo(view.safeAreaLayoutGuide)
         }
-//        Title.snp.makeConstraints{
-//            $0.top.equalTo(view.safeAreaLayoutGuide)
-//            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
-//            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
-//        }
         Title.snp.makeConstraints{
             $0.top.equalToSuperview()
             $0.trailing.equalToSuperview()
@@ -54,12 +50,16 @@ class IssueListViewController: UIViewController, UITableViewDelegate, UITableVie
         }
         IssueListTableView.snp.makeConstraints{
             $0.top.equalTo(Title.snp.bottom).offset(12)
-//            $0.leading.equalTo(view.safeAreaLayoutGuide).offset(14)
-//            $0.trailing.equalTo(view.safeAreaLayoutGuide).offset(-14)
             $0.trailing.equalToSuperview()
             $0.leading.equalToSuperview()
             $0.bottom.equalToSuperview()
         }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        getChatTopics()
+        // 뷰가 화면에 나타날 때마다 실행될 코드
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -68,9 +68,37 @@ class IssueListViewController: UIViewController, UITableViewDelegate, UITableVie
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = IssueListTableView.dequeueReusableCell(withIdentifier: "issueCell", for: indexPath) as! IssueListTableViewCell
-    
         cell.TitleLabel.text = topics[indexPath.row].title
         return cell
+    }
+    
+    func getChatTopics(){
+        db.collection("chattopics").getDocuments { (querySnapshot, error) in
+            if let error = error {
+                print("Error getting documents: \(error)")
+            } else {
+                self.topics = querySnapshot!.documents.compactMap { document in
+                    let data = document.data()
+                    guard let title = data["title"] as? String,
+                          let messages = data["messages"] as? [Message],
+                          let vote = data["vote"] as? Int,
+                          let activate = data["activate"] as? Bool,
+                          let startTime = data["startTime"] as? Timestamp else {
+                        return nil
+                    }
+                    
+                    // Firestore의 Timestamp를 Date로 변환
+                    return Topic(
+                        title: title,
+                        messages: messages,
+                        vote: vote,
+                        activate: activate,
+                        startTime: startTime.dateValue()
+                    )
+                }
+                self.IssueListTableView.reloadData()
+            }
+        }
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {

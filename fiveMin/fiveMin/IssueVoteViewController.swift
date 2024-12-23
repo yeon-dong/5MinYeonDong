@@ -8,9 +8,11 @@
 import UIKit
 import SnapKit
 import Then
+import FirebaseFirestore
 
 class IssueVoteViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate {
     
+    let db = Firestore.firestore()
     var topicList : [Topic] = []
     var bestTopic : Topic?
     
@@ -73,7 +75,7 @@ class IssueVoteViewController: UIViewController, UITableViewDelegate, UITableVie
     override func viewDidLoad() {
         super.viewDidLoad()
         // MARK: 여기에 파이어베이스에 불러온 토픽 리스트 삽입
-        topicList = [Topic(title: "주제1", messages: [Message(id: "1", senderId: "2", text: "hi", timestamp: TimeInterval())], vote: 2, activate: true, startTime: Date())]
+        topicList = []
         bestTopic = topicList.max(by:{$0.vote < $1.vote})
         if let bestTopic {
             BestTopicTitle.text = "\(bestTopic.title)"
@@ -162,8 +164,11 @@ class IssueVoteViewController: UIViewController, UITableViewDelegate, UITableVie
             $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
             $0.trailing.equalTo(SendButton.snp.leading).offset(-3)
         }
-        
+        fetchTopics()
         SendButton.addTarget(self, action:#selector(sendTopic), for : .touchUpInside)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(createChatting))
+        BestTopicWrapper.addGestureRecognizer(tapGesture)
+        BestTopicWrapper.isUserInteractionEnabled = true
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -182,8 +187,97 @@ class IssueVoteViewController: UIViewController, UITableViewDelegate, UITableVie
     //토픽 등록 함수
     @objc private func sendTopic(){
         guard let topic = TopicinputField.text, !topic.isEmpty else {return}
-        self.topicList.append(Topic(title: topic, messages: [], vote: 0, activate: false, startTime: Date()))
-        reloadData()
+        
+        let newTopic = Topic(title: topic, messages: [], vote: 0, activate: false, startTime: Date())
+        db.collection("topics").addDocument(data: newTopic.toDictionary()){ error in
+            if let error = error {
+                print("Error adding document: \(error)")
+            } else {
+            }
+        }
+        fetchTopics()
+        TopicinputField.text = ""
+    }
+    
+    @objc private func createChatting(){
+        guard let topic = bestTopic else {
+            return
+        }
+        TopicManager.shared.setActiveTopic(topic)
+        deleteTopic(title: topic.title)
+        if let tabBarController = self.tabBarController {
+            tabBarController.selectedIndex = 0
+            NotificationCenter.default.post(name: NSNotification.Name("UIUpdateNotification"), object: nil)
+        }
+    }
+    
+    func fetchTopics() {
+        db.collection("topics").getDocuments { (querySnapshot, error) in
+            if let error = error {
+                print("Error getting documents: \(error)")
+            } else {
+                self.topicList = querySnapshot!.documents.compactMap { document in
+                    let data = document.data()
+                    guard let title = data["title"] as? String,
+                          let messages = data["messages"] as? [Message],
+                          let vote = data["vote"] as? Int,
+                          let activate = data["activate"] as? Bool,
+                          let startTime = data["startTime"] as? Timestamp else {
+                        return nil
+                    }
+                    
+                    // Firestore의 Timestamp를 Date로 변환
+                    return Topic(
+                        title: title,
+                        messages: messages,
+                        vote: vote,
+                        activate: activate,
+                        startTime: startTime.dateValue()
+                    )
+                }
+                print(self.topicList)
+                self.reloadData()
+            }
+        }
+    }
+    
+    func deleteTopic(title: String){
+        db.collection("topics")
+                    .whereField("title", isEqualTo: title)
+                    .getDocuments { snapshot, error in
+                        if let error = error {
+                            print("Error getting documents: \(error)")
+                            return
+                        }
+                        // 문서가 존재하는 경우 삭제
+                        if let snapshot = snapshot, !snapshot.isEmpty {
+                            for document in snapshot.documents {
+                                // 문서 삭제
+                                document.reference.delete() { error in
+                                    if let error = error {
+                                        print("Error removing document: \(error)")
+                                    } else {
+                                        self.sendChattingTopic(title: title)
+                                        self.fetchTopics()
+                                    }
+                                }
+                            }
+                            
+                        } else {
+                            print("No topic found with the title \(title).")
+                        }
+                    }
+    }
+    
+    private func sendChattingTopic(title: String){
+        let newChatTopic = Topic(title: title, messages: [], vote: 0, activate: false, startTime: Date())
+        db.collection("chattopics").addDocument(data: newChatTopic.toDictionary()){ error in
+            if let error = error {
+                print("Error adding document: \(error)")
+            } else {
+            }
+        }
+        TopicinputField.text = ""
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
@@ -197,8 +291,28 @@ class IssueVoteViewController: UIViewController, UITableViewDelegate, UITableVie
     // MARK: 여기에 좋아요랑 파이어베이스 연동
     //좋아요 증가시키는 함수
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath){
-        topicList[indexPath.row].vote += 1
-        reloadData()
+        let topicRef = db.collection("topics").whereField("title", isEqualTo: topicList[indexPath.row].title)
+        // vote 증가
+                topicRef.getDocuments { (querySnapshot, error) in
+                    if let error = error {
+                        print("Error getting document: \(error)")
+                    } else {
+                        if let document = querySnapshot?.documents.first {
+                            let currentVote = document.data()["vote"] as? Int ?? 0
+                            let updatedVote = currentVote + 1
+                            
+                            // 해당 문서의 vote 필드 업데이트
+                            document.reference.updateData(["vote": updatedVote]) { error in
+                                if let error = error {
+                                    print("Error updating document: \(error)")
+                                } else {
+                                    // 테이블 뷰 새로 고침
+                                    self.fetchTopics() // 새로운 데이터를 다시 불러와서 테이블 뷰 갱신
+                                }
+                            }
+                        }
+                    }
+                }
     }
     
     func reloadData(){
