@@ -9,6 +9,7 @@ target 'fiveMin' do
   pod 'FirebaseAuth'
   pod 'FirebaseCore'
   pod 'Firebase/Database'
+  pod 'Firebase/Firestore'
   # Pods for fiveMin
 
 end
